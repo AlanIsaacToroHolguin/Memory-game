@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego de Memoria - Para Ti Mi Amor ❤️</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+            color: white;
+            font-size: 1.2em;
+        }
+
+        .stat {
+            background: rgba(255,255,255,0.2);
+            padding: 10px 20px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            aspect-ratio: 1;
+            background: white;
+            border-radius: 15px;
+            cursor: pointer;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .card:hover {
+            transform: scale(1.05);
+        }
+
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card.matched {
+            opacity: 0.6;
+            cursor: default;
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .card-front {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            font-size: 3em;
+        }
+
+        .card-back {
+            background: white;
+            transform: rotateY(180deg);
+            overflow: hidden;
+        }
+
+        .card-back img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .message-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .message-overlay.show {
+            display: flex;
+        }
+
+        .message-box {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 500px;
+            animation: slideIn 0.5s;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .message-box h2 {
+            color: #f5576c;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+
+        .message-box p {
+            color: #333;
+            font-size: 1.2em;
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+        }
+
+        .reset-btn {
+            display: block;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 600px) {
+            .game-board {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 10px;
+            }
+            
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .stats {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💕 Juego de Memoria del Amor 💕</h1>
+            <p>Encuentra todas las parejas y descubre los mensajes especiales</p>
+        </div>
+
+        <div class="stats">
+            <div class="stat">⏱️ Tiempo: <span id="time">0</span>s</div>
+            <div class="stat">🎯 Movimientos: <span id="moves">0</span></div>
+            <div class="stat">✨ Parejas: <span id="pairs">0</span>/8</div>
+        </div>
+
+        <div class="game-board" id="gameBoard"></div>
+
+        <button class="btn reset-btn" onclick="resetGame()">🔄 Nuevo Juego</button>
+    </div>
+
+    <div class="message-overlay" id="messageOverlay">
+        <div class="message-box">
+            <h2 id="messageTitle">💖</h2>
+            <p id="messageText"></p>
+            <button class="btn" onclick="closeMessage()">Continuar</button>
+        </div>
+    </div>
+
+    <script>
+        // INSTRUCCIONES: Cambia los nombres de los archivos por los nombres de tus fotos
+        // Las fotos deben estar en la carpeta "assets" junto a este archivo HTML
+        const images = [
+            'assets/1.jpg',
+            'assets/2.jpg',
+            'assets/3.jpg',
+            'assets/4.jpg',
+            'assets/5.jpg',
+            'assets/6.jpg',
+            'assets/7.jpg',
+            'assets/8.jpg'
+        ];
+
+        // Mensajes personalizados para cada par de fotos
+        const messages = [
+            'Amo tu sonrisa que ilumina mis días ☀️',
+            'Cada momento contigo es un regalo 🎁',
+            'Eres mi persona favorita en todo el mundo 🌍',
+            'Tu risa es mi canción preferida 🎵',
+            'Contigo el tiempo se detiene ⏰',
+            'Eres mi lugar feliz 🏡',
+            'Tu abrazo es mi hogar 🤗',
+            'Te amo más de lo que las palabras pueden expresar 💝'
+        ];
+
+        let cards = [];
+        let flippedCards = [];
+        let matchedPairs = 0;
+        let moves = 0;
+        let timer = 0;
+        let timerInterval;
+        let canFlip = true;
+
+        function initGame() {
+            const gameBoard = document.getElementById('gameBoard');
+            gameBoard.innerHTML = '';
+            
+            // Crear pares de cartas
+            cards = [];
+            images.forEach((img, index) => {
+                cards.push({ img, message: messages[index], id: index });
+                cards.push({ img, message: messages[index], id: index });
+            });
+            
+            // Mezclar cartas
+            cards.sort(() => Math.random() - 0.5);
+            
+            // Crear elementos de cartas
+            cards.forEach((card, index) => {
+                const cardElement = document.createElement('div');
+                cardElement.className = 'card';
+                cardElement.dataset.index = index;
+                cardElement.dataset.id = card.id;
+                cardElement.innerHTML = `
+                    <div class="card-front">❤️</div>
+                    <div class="card-back">
+                        <img src="${card.img}" alt="Foto especial">
+                    </div>
+                `;
+                cardElement.addEventListener('click', flipCard);
+                gameBoard.appendChild(cardElement);
+            });
+
+            // Resetear estadísticas
+            matchedPairs = 0;
+            moves = 0;
+            timer = 0;
+            flippedCards = [];
+            document.getElementById('moves').textContent = '0';
+            document.getElementById('pairs').textContent = '0';
+            document.getElementById('time').textContent = '0';
+            
+            // Iniciar temporizador
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timer++;
+                document.getElementById('time').textContent = timer;
+            }, 1000);
+        }
+
+        function flipCard() {
+            if (!canFlip) return;
+            if (this.classList.contains('flipped') || this.classList.contains('matched')) return;
+            
+            this.classList.add('flipped');
+            flippedCards.push(this);
+
+            if (flippedCards.length === 2) {
+                moves++;
+                document.getElementById('moves').textContent = moves;
+                canFlip = false;
+                checkMatch();
+            }
+        }
+
+        function checkMatch() {
+            const [card1, card2] = flippedCards;
+            const id1 = card1.dataset.id;
+            const id2 = card2.dataset.id;
+
+            if (id1 === id2) {
+                // ¡Pareja encontrada!
+                setTimeout(() => {
+                    card1.classList.add('matched');
+                    card2.classList.add('matched');
+                    matchedPairs++;
+                    document.getElementById('pairs').textContent = matchedPairs;
+                    
+                    // Mostrar mensaje especial
+                    showMessage(messages[id1]);
+                    
+                    flippedCards = [];
+                    canFlip = true;
+
+                    // Verificar si el juego terminó
+                    if (matchedPairs === 8) {
+                        clearInterval(timerInterval);
+                        setTimeout(() => {
+                            showFinalMessage();
+                        }, 1000);
+                    }
+                }, 600);
+            } else {
+                // No coinciden
+                setTimeout(() => {
+                    card1.classList.remove('flipped');
+                    card2.classList.remove('flipped');
+                    flippedCards = [];
+                    canFlip = true;
+                }, 1000);
+            }
+        }
+
+        function showMessage(message) {
+            document.getElementById('messageTitle').textContent = '💖 ¡Pareja Encontrada!';
+            document.getElementById('messageText').textContent = message;
+            document.getElementById('messageOverlay').classList.add('show');
+        }
+
+        function showFinalMessage() {
+            document.getElementById('messageTitle').textContent = '🎉 ¡Felicidades Mi Amor! 🎉';
+            document.getElementById('messageText').textContent = 
+                `¡Lo lograste en ${moves} movimientos y ${timer} segundos! ` +
+                `Eres increíble, así como cada día que paso contigo. ` +
+                `Te amo más de lo que imaginas. 💕`;
+            document.getElementById('messageOverlay').classList.add('show');
+        }
+
+        function closeMessage() {
+            document.getElementById('messageOverlay').classList.remove('show');
+        }
+
+        function resetGame() {
+            clearInterval(timerInterval);
+            initGame();
+        }
+
+        // Iniciar el juego cuando carga la página
+        window.onload = initGame;
+    </script>
+</body>
+</html>
